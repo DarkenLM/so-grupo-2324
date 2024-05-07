@@ -139,10 +139,12 @@ int main(int argc, char const *argv[]) {
 
             char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", header.pid);
             char* client_fifo_path = join_paths(2, "build/", client_fifo_name);
-            int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_WRONLY, 0600);
+            // int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_WRONLY, 0600);
+            int client_fifo_fd = NULL;
 
             if(header.mode == DATAGRAM_MODE_EXECUTE_REQUEST) {
                 DEBUG_PRINT(LOG_HEADER "Processing Execute Request.\n");
+                client_fifo_fd = SAFE_OPEN(client_fifo_path, O_WRONLY, 0600);
 
                 ExecuteRequestDatagram request_execute = read_partial_execute_request_datagram(server_fifo_fd, header);
 
@@ -177,19 +179,13 @@ int main(int argc, char const *argv[]) {
                 WRITE_PROCESS_MARK(operator_pd, MAIN_SERVER_PROCESS_MARK);
                 SAFE_WRITE(operator_pd, request_status, sizeof(STATUS_REQUEST_DATAGRAM));
 
-                // TODO: Create status response payload
-                // NOTE: history.log tem id da task o tempo que demorou e o nome da tarefa
-                // TODO: Fazer lseek para o inicio do history file
-                // TODO: Verificar a versao do ficheiro
-                // TODO: Caso a versão seja a correta ler todas as entrys para um buffer (buffer com as tasks terminadas)
-
-                // uint8_t status_res_payload[] = "Hello world!";
-                // StatusResponseDatagram response = create_status_response_datagram(status_res_payload, 13);
-                // write(client_fifo_fd, response, sizeof(STATUS_RESPONSE_DATAGRAM));
+                printf(LOG_HEADER "Status task queued.\n");
 
                 DEBUG_PRINT(LOG_HEADER "Status Request finalized.\n");
             } else if(header.mode == DATAGRAM_MODE_CLOSE_REQUEST) {
                 DEBUG_PRINT(LOG_HEADER "Processing Close request.\n");
+
+                client_fifo_fd = SAFE_OPEN(client_fifo_path, O_WRONLY, 0600);
 
                 CRITICAL_START
                     DATAGRAM_HEADER response = create_datagram_header();
@@ -203,7 +199,7 @@ int main(int argc, char const *argv[]) {
                 shutdown_requested = 1;
             }
 
-            close(client_fifo_fd);
+            if (client_fifo_fd != NULL) close(client_fifo_fd);
             close(server_fifo_fd);
             free(client_fifo_path);
             free(client_fifo_name);

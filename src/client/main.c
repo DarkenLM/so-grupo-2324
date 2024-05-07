@@ -46,7 +46,8 @@ int main(int argc, char const *argv[]) {
             int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_RDONLY, 0600);
             StatusResponseDatagram response = read_status_response_datagram(client_fifo_fd);
 
-            // TODO: Print response datagram payload.
+            DEBUG_PRINT("[DEBUG] Printing payload with %d bytes.\n", response->payload_len);
+            printf("%s", response->payload);
 
             close(client_fifo_fd);
             unlink(client_fifo_path);

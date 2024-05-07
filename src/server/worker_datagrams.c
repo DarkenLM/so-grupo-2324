@@ -26,12 +26,21 @@ WORKER_DATAGRAM_HEADER read_worker_datagram_header(int fd) {
 
 
 #pragma region ======= STATUS REQUEST =======
-WorkerStatusRequestDatagram create_worker_status_request_datagram() {
+WorkerStatusRequestDatagram create_worker_status_request_datagram(int num_clients, int* clients, int num_tasks_queued, int num_tasks, WorkerStatusPayload* tasks) {
     #define ERR NULL
 
     WorkerStatusRequestDatagram dg = SAFE_ALLOC(WorkerStatusRequestDatagram, sizeof(WORKER_STATUS_REQUEST_DATAGRAM));
     dg->header = create_worker_datagram_header();
     dg->header.mode = WORKER_DATAGRAM_MODE_STATUS_REQUEST;
+
+    dg->num_clients = num_clients;
+    dg->clients = SAFE_ALLOC(int*, sizeof(int) * num_clients);
+    memcpy(dg->clients, clients, sizeof(int) * num_clients);
+
+    dg->num_tasks_queued = num_tasks_queued;
+    dg->num_tasks = num_tasks;
+    dg->tasks = SAFE_ALLOC(WorkerStatusPayload*, sizeof(WorkerStatusPayload) * num_tasks);
+    memcpy(dg->tasks, tasks, sizeof(WorkerStatusPayload) * num_tasks);
 
     return dg;
 
@@ -44,9 +53,47 @@ WorkerStatusRequestDatagram read_partial_worker_status_request_datagram(int fd, 
     WorkerStatusRequestDatagram dg = SAFE_ALLOC(WorkerStatusRequestDatagram, sizeof(WORKER_STATUS_REQUEST_DATAGRAM));
     dg->header = header;
 
+    // int offset = sizeof(WORKER_DATAGRAM_HEADER);
+
+    // // Read clients
+    // int num_clients = STRUCT_MEMBER_SIZE(WORKER_STATUS_REQUEST_DATAGRAM, num_clients);
+    // SAFE_READ(fd, (((void*)dg) + offset), num_clients);
+    // offset += num_clients;
+
+    // dg->clients = SAFE_ALLOC(int*, sizeof(int) * num_clients);
+    // SAFE_READ(fd, (((void*)dg) + offset), dg->clients);
+    // offset += sizeof(int) * num_clients;
+
+    // // Read tasks
+    // SAFE_READ(fd, (((void*)dg) + offset), sizeof(int));
+    // offset += sizeof(int);
+
+    // int num_tasks = STRUCT_MEMBER_SIZE(WORKER_STATUS_REQUEST_DATAGRAM, num_tasks);
+    // SAFE_READ(fd, (((void*)dg) + offset), num_tasks);
+    // offset += num_tasks;
+
+    // dg->tasks = SAFE_ALLOC(WorkerStatusPayload*, sizeof(WorkerStatusPayload) * num_tasks);
+    // SAFE_READ(fd, (((void*)dg) + offset), dg->tasks);
+
+    // Read clients
+    SAFE_READ(fd, &(dg->num_clients), STRUCT_MEMBER_SIZE(WORKER_STATUS_REQUEST_DATAGRAM, num_clients));
+
+    dg->clients = SAFE_ALLOC(int*, sizeof(int) * dg->num_clients);
+    SAFE_READ(fd, dg->clients, sizeof(int) * dg->num_clients);
+
+    // Read tasks
+    SAFE_READ(fd, &(dg->num_tasks_queued), STRUCT_MEMBER_SIZE(WORKER_STATUS_REQUEST_DATAGRAM, num_tasks_queued));
+    SAFE_READ(fd, &(dg->num_tasks), STRUCT_MEMBER_SIZE(WORKER_STATUS_REQUEST_DATAGRAM, num_tasks));
+
+    dg->tasks = SAFE_ALLOC(WorkerStatusPayload*, sizeof(WorkerStatusPayload) * dg->num_tasks);
+    SAFE_READ(fd, dg->tasks, sizeof(WorkerStatusPayload) * dg->num_tasks);
+
     return dg;
     #undef ERR
 }
+
+
+
 #pragma endregion
 
 
@@ -99,6 +146,8 @@ WorkerShutdownRequestDatagram create_worker_shutdown_request_datagram() {
 
 
 WorkerShutdownRequestDatagram read_partial_worker_shutdown_request_datagram(int fd, WORKER_DATAGRAM_HEADER header) {
+    UNUSED(fd);
+
     #define ERR NULL
     
     WorkerShutdownRequestDatagram dg = SAFE_ALLOC(WorkerShutdownRequestDatagram, sizeof(WORKER_SHUTDOWN_REQUEST_DATAGRAM));

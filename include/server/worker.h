@@ -22,6 +22,6 @@ typedef struct worker {
 /**
  * @brief Starts a new worker process.
  */
-Worker start_worker(int operator_pd, int worker_id, char* output_dir);
+Worker start_worker(int operator_pd, int worker_id, char* output_dir, char* history_file_path);
 
 #endif

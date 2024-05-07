@@ -49,6 +49,8 @@ StatusRequestDatagram read_status_request_datagram(int fd) {
 }
 
 StatusRequestDatagram read_partial_status_request_datagram(int fd, DATAGRAM_HEADER header) {
+    UNUSED(fd);
+
     #define ERR NULL
     
     StatusRequestDatagram status = calloc(1, sizeof(STATUS_REQUEST_DATAGRAM));
